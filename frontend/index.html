@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Aura Lanka | Seasonal Products</title>
+    <style>
+      body {
+        font-family: 'Poppins', sans-serif;
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(135deg, #dbeafe, #93c5fd);
+        color: #333;
+      }
+
+      header {
+        background: linear-gradient(90deg, #3b82f6, #2563eb);
+        color: white;
+        text-align: center;
+        padding: 40px 0;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      header h1 {
+        margin: 0;
+      }
+
+      header p {
+        margin-top: 10px;
+        font-weight: 300;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 50px auto;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      }
+
+      .product-card {
+        background: linear-gradient(135deg, #93c5fd, #bfdbfe);
+        border-radius: 15px;
+        padding: 20px 30px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .product-card:hover {
+        transform: scale(1.03);
+        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+      }
+
+      .product-name {
+        font-weight: 600;
+        font-size: 1.3rem;
+      }
+
+      .price {
+        background: #fff;
+        color: #1d4ed8;
+        font-weight: bold;
+        padding: 6px 12px;
+        border-radius: 8px;
+      }
+
+      button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 8px;
+        background-color: #2563eb;
+        color: white;
+        cursor: pointer;
+        transition: 0.3s;
+        font-weight: bold;
+      }
+
+      button:hover {
+        background-color: #1d4ed8;
+      }
+
+      .cart {
+        margin-top: 30px;
+        padding: 20px;
+        background: #eff6ff;
+        border-radius: 15px;
+      }
+
+      .cart h2 {
+        margin-top: 0;
+      }
+
+      .form-section {
+        display: none;
+        margin-top: 30px;
+        padding: 20px;
+        background: #e0f2fe;
+        border-radius: 15px;
+      }
+
+      .form-section h2 {
+        color: #1e3a8a;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 5px;
+      }
+
+      input, select {
+        width: 100%;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #93c5fd;
+        outline: none;
+      }
+
+      input:focus, select:focus {
+        border-color: #2563eb;
+      }
+
+      footer {
+        text-align: center;
+        background: linear-gradient(90deg, #60a5fa, #93c5fd);
+        color: #222;
+        padding: 15px 0;
+        font-size: 0.9rem;
+        margin-top: 40px;
+      }
+
+      .success-message {
+        display: none;
+        text-align: center;
+        padding: 30px;
+        background: #d1fae5;
+        border-radius: 15px;
+        color: #065f46;
+        font-weight: bold;
+        margin-top: 30px;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>🌸 Aura Lanka Seasonal Collection 🌸</h1>
+      <p>Bright styles for every season — Men | Women | Kids</p>
+    </header>
+
+    <div class="container">
+      <div id="product-list"></div>
+
+      <div class="cart" id="cart-section">
+        <h2>🛒 Shopping Cart</h2>
+        <ul id="cart-items"></ul>
+        <p id="total-price"><strong>Total: Rs. 0</strong></p>
+        <button id="purchase-btn">Proceed to Purchase</button>
+      </div>
+
+      <div class="form-section" id="delivery-form">
+        <h2>🚚 Delivery Details</h2>
+        <div class="form-group">
+          <label>Full Name:</label>
+          <input type="text" id="name" required>
+        </div>
+        <div class="form-group">
+          <label>Address:</label>
+          <input type="text" id="address" required>
+        </div>
+        <div class="form-group">
+          <label>Contact Number:</label>
+          <input type="text" id="phone" required>
+        </div>
+        <div class="form-group">
+          <label>Payment Method:</label>
+          <select id="payment-method">
+            <option value="Card">💳 Credit/Debit Card</option>
+            <option value="Cash">💵 Cash on Delivery</option>
+            <option value="Bank">🏦 Bank Transfer</option>
+          </select>
+        </div>
+        <button id="confirm-payment">Confirm Payment</button>
+      </div>
+
+      <div class="success-message" id="success-msg">
+        ✅ Payment Successful! <br>
+        Thank you for shopping with <strong>Aura Lanka</strong>. Your order will be delivered soon.
+      </div>
+    </div>
+
+    <footer>© 2025 Aura Lanka Clothing | Designed by Member 1</footer>
+
+    <script>
+      const products = [
+        {name: "Summer Shirt", price: 1500},
+        {name: "Kids Dress", price: 1200},
+        {name: "Beach Hat", price: 800},
+        {name: "Linen Shorts", price: 1300},
+        {name: "Floral Maxi Dress", price: 2800},
+        {name: "Casual Sandals", price: 1900}
+      ];
+
+      const list = document.getElementById('product-list');
+      const cartItems = document.getElementById('cart-items');
+      const totalPriceEl = document.getElementById('total-price');
+      const purchaseBtn = document.getElementById('purchase-btn');
+      const formSection = document.getElementById('delivery-form');
+      const successMsg = document.getElementById('success-msg');
+      const cartSection = document.getElementById('cart-section');
+      const confirmPayment = document.getElementById('confirm-payment');
+
+      let cart = [];
+
+      function updateCart() {
+        cartItems.innerHTML = '';
+        let total = 0;
+        cart.forEach((item, index) => {
+          const li = document.createElement('li');
+          li.textContent = `${item.name} - Rs.${item.price}`;
+          const removeBtn = document.createElement('button');
+          removeBtn.textContent = 'Remove';
+          removeBtn.style.marginLeft = '10px';
+          removeBtn.onclick = () => {
+            cart.splice(index, 1);
+            updateCart();
+          };
+          li.appendChild(removeBtn);
+          cartItems.appendChild(li);
+          total += item.price;
+        });
+        totalPriceEl.innerHTML = `<strong>Total: Rs. ${total}</strong>`;
+      }
+
+      products.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.innerHTML = `
+          <span class="product-name">${p.name}</span>
+          <span class="price">Rs. ${p.price}</span>
+          <button>Add to Cart</button>
+        `;
+        const btn = card.querySelector('button');
+        btn.onclick = () => {
+          cart.push(p);
+          updateCart();
+        };
+        list.appendChild(card);
+      });
+
+      purchaseBtn.onclick = () => {
+        if (cart.length === 0) {
+          alert("Your cart is empty!");
+        } else {
+          cartSection.style.display = 'none';
+          formSection.style.display = 'block';
+        }
+      };
+
+      confirmPayment.onclick = () => {
+        const name = document.getElementById('name').value.trim();
+        const address = document.getElementById('address').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+
+        if (!name || !address || !phone) {
+          alert("Please fill in all delivery details!");
+          return;
+        }
+
+        formSection.style.display = 'none';
+        successMsg.style.display = 'block';
+        cart = [];
+        updateCart();
+      };
+    </script>
+  </body>
+</html>
