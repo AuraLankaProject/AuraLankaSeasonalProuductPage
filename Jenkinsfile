@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = 'auralanka-seasonal-products:latest'
+        NODE_ENV = 'production'
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -11,18 +16,40 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build('auralanka-seasonal-products:latest', './')
+                    echo "Building Docker image..."
+                    docker.build(IMAGE_NAME, './')
                 }
             }
         }
 
-        stage('Run Tests') {
+        stage('Run Backend Tests') {
             steps {
                 script {
-                    // Example: run backend tests
-                    docker.image('auralanka-seasonal-products:latest').inside {
-                        sh 'echo "Run unit tests here"'
-                        // Replace with your actual test commands
+                    echo "Running backend tests inside Docker container..."
+                    docker.image(IMAGE_NAME).inside("-p 5000:5000") {
+                        sh '''
+                            # Example backend test command, replace with actual tests
+                            echo "Running backend tests..."
+                            node backend/server.js &
+                            sleep 5
+                            curl -f http://localhost:5000 || exit 1
+                            pkill node
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Run Frontend Tests') {
+            steps {
+                script {
+                    echo "Running frontend tests inside Docker container..."
+                    docker.image(IMAGE_NAME).inside("-p 5000:5000") {
+                        sh '''
+                            # Example frontend check, replace with actual frontend test commands
+                            echo "Checking frontend availability..."
+                            curl -f http://localhost:5000 || exit 1
+                        '''
                     }
                 }
             }
@@ -31,10 +58,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Build & Tests Passed!'
+            echo '✅ CI Pipeline completed successfully!'
         }
         failure {
-            echo '❌ Build or tests failed.'
+            echo '❌ Build or tests failed. Check console output!'
         }
     }
 }
