@@ -48,17 +48,7 @@ pipeline {
 
         stage('Run Frontend Tests') {
             steps {
-                echo "Running frontend tests inside Docker container..."
-                script {
-                    docker.image("${IMAGE_NAME}").inside('-u root') {
-                        sh '''
-                            cd frontend
-                            npm install
-                            # Replace with your actual frontend test command
-                            echo "No frontend tests yet - run 'npm test' here"
-                        '''
-                    }
-                }
+                echo "No frontend Node.js project found. Skipping frontend tests."
             }
         }
     }
