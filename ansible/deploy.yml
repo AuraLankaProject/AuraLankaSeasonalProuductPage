@@ -1,0 +1,56 @@
+---
+- name: Deploy Aura Lanka E-commerce App to AWS
+  hosts: all
+  become: yes
+  gather_facts: yes
+  
+  tasks:
+    - name: Update package cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Start and enable Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Install Docker Python module
+      apt:
+        name: python3-docker
+        state: present
+
+    - name: Pull Docker image from Docker Hub
+      docker_image:
+        name: hirunisliit/auralanka-ecommerce
+        source: pull
+        force_source: yes
+
+    - name: Stop and remove existing container
+      docker_container:
+        name: auralanka-app
+        state: absent
+
+    - name: Run Docker container
+      docker_container:
+        name: auralanka-app
+        image: hirunisliit/auralanka-ecommerce:latest
+        state: started
+        restart_policy: always
+        ports:
+          - "80:5000"
+          - "5000:5000"
+        env:
+          NODE_ENV: "production"
