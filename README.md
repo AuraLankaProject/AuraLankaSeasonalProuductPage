@@ -11,9 +11,9 @@
 - [ ] Commit and push changes to GitHub
 
 
-Feature: Automated CI/CD Deployment
-IT22199362
-Member 3: Release + Deploy
+- Feature: Automated CI/CD Deployment
+- IT22199362
+- Member 3: Release + Deploy
   
 ## Task List
 ### Infrastructure
