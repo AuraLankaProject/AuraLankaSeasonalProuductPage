@@ -14,7 +14,7 @@
 - Feature: Automated CI/CD Deployment
 - IT22199362
 - Member 3: Release + Deploy
-  
+
 ## Task List
 ### Infrastructure
 - [ ] AWS EC2 instance setup
