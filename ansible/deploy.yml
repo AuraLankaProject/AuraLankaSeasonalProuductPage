@@ -3,6 +3,8 @@
   hosts: all
   become: yes
   gather_facts: yes
+  vars:
+    container_default_behavior: "compatibility"
   
   tasks:
     - name: Update package cache
