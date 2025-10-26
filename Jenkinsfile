@@ -4,6 +4,9 @@ pipeline {
     environment {
         IMAGE_NAME = "auralanka-seasonal-products:latest"
         NODE_ENV = "production"
+	DOCKERHUB_USER = credentials('dockerhub-username')
+        DOCKERHUB_PASS = credentials('dockerhub-password')
+        SSH_KEY = credentials('aws-ssh-key')
     }
 
     stages {
@@ -51,6 +54,26 @@ pipeline {
                 echo "No frontend Node.js project found. Skipping frontend tests."
             }
         }
+	 stage('Deploy to AWS with Ansible') {
+            steps {
+                echo "Deploying to AWS using Ansible..."
+                script {
+                    sh '''
+                        mkdir -p $WORKSPACE/.ssh
+                        printf "%s\n" "$SSH_KEY" > $WORKSPACE/.ssh/aws-key.pem
+                        chmod 600 $WORKSPACE/.ssh/aws-key.pem
+
+                        # Navigate to deployment directory (ensure these files exist in repo)
+                        cd ansible
+
+                        # Run the Ansible playbook
+                        ansible-playbook -i hosts.ini deploy.yml --private-key=$WORKSPACE/.ssh/aws-key.pem
+                    '''
+                }
+                echo "✅ Deployment completed successfully!"
+            }
+        }
+    
     }
 
     post {
