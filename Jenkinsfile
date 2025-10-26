@@ -51,6 +51,16 @@ pipeline {
                 echo "No frontend Node.js project found. Skipping frontend tests."
             }
         }
+	 stage('Deploy to Production') {
+            steps {
+                echo " Deploying to AWS with Ansible..."
+                sh '''
+                    cd ansible
+                    ansible-playbook -i hosts.ini deploy.yml
+                    echo "✅ Deployment completed successfully!"
+                '''
+            }
+        }
     }
 
     post {
