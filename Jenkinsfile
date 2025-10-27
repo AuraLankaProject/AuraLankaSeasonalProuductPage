@@ -6,7 +6,6 @@ pipeline {
         NODE_ENV = "production"
         DOCKERHUB_USER = credentials('dockerhub-username')
         DOCKERHUB_PASS = credentials('dockerhub-password')
-        SSH_KEY = credentials('aws-ssh-key')
     }
 
     stages {
@@ -34,9 +33,7 @@ pipeline {
                         sh '''
                             cd backend
                             npm install
-                            # Start server in background
                             nohup node server.js &
-                            # Wait for server to be ready
                             for i in {1..10}; do
                                 curl -f http://localhost:5000 && break
                                 echo "Waiting for backend..."
@@ -58,17 +55,10 @@ pipeline {
         stage('Deploy to AWS with Ansible') {
             steps {
                 echo "Deploying to AWS using Ansible..."
-                script {
+                sshagent(['auralanka-ec2-key']) {
                     sh '''
-                        mkdir -p $WORKSPACE/.ssh
-                        printf "%s\n" "$SSH_KEY" > $WORKSPACE/.ssh/aws-key.pem
-                        chmod 600 $WORKSPACE/.ssh/aws-key.pem
-
-                        # Navigate to ansible folder
                         cd ansible
-
-                        # Run the Ansible playbook
-                        ansible-playbook -i hosts.ini deploy.yml --private-key=$WORKSPACE/.ssh/aws-key.pem
+                        ansible-playbook -i hosts.ini deploy.yml
                     '''
                 }
                 echo "✅ Deployment completed successfully!"
