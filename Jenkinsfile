@@ -23,15 +23,18 @@ pipeline {
             }
         }
 
-        stage('Push Docker Image to Docker Hub') {
-            steps {
-                echo "Logging in to Docker Hub..."
-                sh '''
-                    echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin
-                    docker push $IMAGE_NAME
-                '''
-            }
-        }
+
+stage('Push Docker Image to Docker Hub') {
+    steps {
+        echo "Logging in to Docker Hub..."
+        sh '''
+            echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin
+            docker push $IMAGE_NAME
+        '''
+    }
+}
+
+
 
         stage('Run Backend Tests') {
             steps {
