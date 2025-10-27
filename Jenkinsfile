@@ -34,9 +34,7 @@ pipeline {
                         sh '''
                             cd backend
                             npm install
-                            # Start server in background
                             nohup node server.js &
-                            # Wait for server to be ready
                             for i in {1..10}; do
                                 curl -f http://localhost:5000 && break
                                 echo "Waiting for backend..."
@@ -52,19 +50,6 @@ pipeline {
         stage('Run Frontend Tests') {
             steps {
                 echo "No frontend Node.js project found. Skipping frontend tests."
-            }
-        }
-
-        stage('Docker Login & Push') {
-            steps {
-                echo "Logging in to Docker Hub and pushing image..."
-                script {
-                    sh """
-                        echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
-                        docker tag ${IMAGE_NAME} ${DOCKERHUB_USER}/${IMAGE_NAME}
-                        docker push ${DOCKERHUB_USER}/${IMAGE_NAME}
-                    """
-                }
             }
         }
 
@@ -88,14 +73,18 @@ pipeline {
 
     post {
         success {
-            echo '✅ Build, Tests & Deployment Passed!'
+            echo '✅ Build & Tests Passed!'
         }
         failure {
             echo '❌ Build, Tests or Deployment Failed!'
         }
         always {
-            // Clean up SSH key safely
-            sh 'rm -rf $WORKSPACE/.ssh || true'
+            node {
+                script {
+                    echo "Cleaning up SSH keys..."
+                    sh 'rm -rf $WORKSPACE/.ssh || true'
+                }
+            }
         }
     }
 }
