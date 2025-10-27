@@ -55,6 +55,19 @@ pipeline {
             }
         }
 
+        stage('Docker Login & Push') {
+            steps {
+                echo "Logging in to Docker Hub and pushing image..."
+                script {
+                    sh """
+                        echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
+                        docker tag ${IMAGE_NAME} ${DOCKERHUB_USER}/${IMAGE_NAME}
+                        docker push ${DOCKERHUB_USER}/${IMAGE_NAME}
+                    """
+                }
+            }
+        }
+
         stage('Deploy to AWS with Ansible') {
             steps {
                 echo "Deploying to AWS using Ansible..."
@@ -75,16 +88,14 @@ pipeline {
 
     post {
         success {
-            echo '✅ Build & Tests Passed!'
+            echo '✅ Build, Tests & Deployment Passed!'
         }
         failure {
-            echo '❌ Build or tests failed!'
+            echo '❌ Build, Tests or Deployment Failed!'
         }
         always {
-            node {
-                echo "Cleaning up SSH keys..."
-                sh 'rm -rf $WORKSPACE/.ssh || true'
-            }
+            // Clean up SSH key safely
+            sh 'rm -rf $WORKSPACE/.ssh || true'
         }
     }
 }
