@@ -4,7 +4,6 @@ pipeline {
     environment {
         IMAGE_NAME = "auralanka-seasonal-products:latest"
         NODE_ENV = "production"
-        // DOCKER credentials will be handled in withCredentials block
     }
 
     stages {
@@ -27,14 +26,15 @@ pipeline {
                 echo "Logging in to Docker Hub..."
                 withCredentials([
                     usernamePassword(
-                        credentialsId: 'dockerhub-username',
-                        usernameVariable: 'DOCKERHUB_USER',
+                        credentialsId: 'dockerhub-username', 
+                        usernameVariable: 'DOCKERHUB_USER', 
                         passwordVariable: 'DOCKERHUB_PASS'
                     )
                 ]) {
                     sh """
+                        docker tag $IMAGE_NAME \$DOCKERHUB_USER/auralanka-seasonal-products:latest
                         echo \$DOCKERHUB_PASS | docker login -u \$DOCKERHUB_USER --password-stdin
-                        docker push \$IMAGE_NAME
+                        docker push \$DOCKERHUB_USER/auralanka-seasonal-products:latest
                     """
                 }
             }
@@ -48,7 +48,7 @@ pipeline {
                     npm install
                     nohup node server.js &
                     for i in {1..10}; do
-                        curl -f http://localhost:3000 && break
+                        curl -f http://localhost:5000 && break
                         echo "Waiting for backend..."
                         sleep 1
                     done
