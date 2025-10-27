@@ -61,7 +61,6 @@ pipeline {
                         mkdir -p $WORKSPACE/.ssh
                         printf "%s\n" "$SSH_KEY" > $WORKSPACE/.ssh/aws-key.pem
                         chmod 600 $WORKSPACE/.ssh/aws-key.pem
-
                         cd ansible
                         ansible-playbook -i hosts.ini deploy.yml --private-key=$WORKSPACE/.ssh/aws-key.pem
                     '''
@@ -79,11 +78,9 @@ pipeline {
             echo '❌ Build, Tests or Deployment Failed!'
         }
         always {
-            node {
-                script {
-                    echo "Cleaning up SSH keys..."
-                    sh 'rm -rf $WORKSPACE/.ssh || true'
-                }
+            script {
+                // Clean up SSH key safely
+                sh 'rm -rf $WORKSPACE/.ssh || true'
             }
         }
     }
