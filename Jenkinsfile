@@ -42,42 +42,39 @@ pipeline {
             }
         }
 
+        stage('Run Backend Tests') {
+            steps {
+                echo "Running backend tests inside Docker..."
+                sh '''
+                    docker run --rm -v $PWD/backend:/app/backend -w /app/backend auralanka-seasonal-products:latest bash -c "
+                        npm install && \
+                        if npm run | grep -q 'test'; then
+                            npm test
+                        else
+                            echo 'No backend test script found. Skipping backend tests.'
+                        fi
+                    "
+                '''
+            }
+        }
 
-	stage('Run Backend Tests') {
-    steps {
-        echo "Running backend tests inside Docker..."
-        sh '''
-            docker run --rm -v $PWD/backend:/app/backend -w /app/backend auralanka-seasonal-products:latest bash -c "
-                npm install && \
-                if npm run | grep -q 'test'; then
-                    npm test
+        stage('Run Frontend Tests') {
+            steps {
+                echo 'Running frontend tests inside Docker...'
+                sh '''
+                if [ -f frontend/package.json ]; then
+                    docker run --rm \
+                        -v $WORKSPACE/frontend:/app/frontend \
+                        -w /app/frontend \
+                        auralanka-seasonal-products:latest \
+                        bash -c "npm install && \
+                        if npm run | grep -q 'test'; then npm test; else echo 'No frontend test script found. Skipping tests.'; fi"
                 else
-                    echo 'No test script found. Skipping backend tests.'
+                    echo "No frontend/package.json found. Skipping frontend tests."
                 fi
-            "
-        '''
-    }
-}
-
-
-
-	stage('Run Frontend Tests') {
-    echo 'Running frontend tests inside Docker...'
-    sh '''
-    if [ -f frontend/package.json ]; then
-        docker run --rm \
-            -v $WORKSPACE/frontend:/app/frontend \
-            -w /app/frontend \
-            auralanka-seasonal-products:latest \
-            bash -c "npm install && \
-            if npm run | grep -q 'test'; then npm test; else echo 'No frontend test script found. Skipping tests.'; fi"
-    else
-        echo "No frontend/package.json found. Skipping frontend tests."
-    fi
-    '''
-}
-
-
+                '''
+            }
+        }
 
         stage('Deploy to AWS with Ansible') {
             steps {
