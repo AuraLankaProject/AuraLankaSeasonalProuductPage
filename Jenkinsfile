@@ -4,8 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = "auralanka-seasonal-products:latest"
         NODE_ENV = "production"
-        DOCKERHUB_USER = credentials('dockerhub-username') // hirunisliit
-        DOCKERHUB_PASS = credentials('dockerhub-password') // Docker Hub token
+        // DOCKER credentials will be handled in withCredentials block
     }
 
     stages {
@@ -23,18 +22,23 @@ pipeline {
             }
         }
 
-
-stage('Push Docker Image to Docker Hub') {
-    steps {
-        echo "Logging in to Docker Hub..."
-        sh """
-            echo \$DOCKERHUB_PASS | docker login -u \$DOCKERHUB_USER --password-stdin
-            docker push \$IMAGE_NAME
-        """
-    }
-}
-
-
+        stage('Push Docker Image to Docker Hub') {
+            steps {
+                echo "Logging in to Docker Hub..."
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-username',
+                        usernameVariable: 'DOCKERHUB_USER',
+                        passwordVariable: 'DOCKERHUB_PASS'
+                    )
+                ]) {
+                    sh """
+                        echo \$DOCKERHUB_PASS | docker login -u \$DOCKERHUB_USER --password-stdin
+                        docker push \$IMAGE_NAME
+                    """
+                }
+            }
+        }
 
         stage('Run Backend Tests') {
             steps {
@@ -44,7 +48,7 @@ stage('Push Docker Image to Docker Hub') {
                     npm install
                     nohup node server.js &
                     for i in {1..10}; do
-                        curl -f http://localhost:5000 && break
+                        curl -f http://localhost:3000 && break
                         echo "Waiting for backend..."
                         sleep 1
                     done
