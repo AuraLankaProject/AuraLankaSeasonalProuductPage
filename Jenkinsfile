@@ -85,8 +85,10 @@ pipeline {
             echo '❌ Build or tests failed!'
         }
 	always {
-            // Clean up SSH key
-            sh 'rm -rf $WORKSPACE/.ssh || true'
+            script {
+                // Clean up SSH key with proper node context
+                sh 'rm -rf $WORKSPACE/.ssh || true'
+            }
         }
     }
 }
