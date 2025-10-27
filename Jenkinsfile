@@ -2,7 +2,8 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "auralanka-seasonal-products:latest"
+        IMAGE_NAME = "auralanka-seasonal-products"
+        IMAGE_TAG = "latest"
         NODE_ENV = "production"
     }
 
@@ -10,31 +11,35 @@ pipeline {
 
         stage('Checkout') {
             steps {
+                echo "Checking out code from Git..."
                 git branch: 'feature/seasonal-products',
-                    url: 'https://github.com/AuraLankaProject/AuraLankaSeasonalProuductPage.git'
+                    url: 'https://github.com/AuraLankaProject/AuraLankaSeasonalProuductPage.git',
+                    credentialsId: 'eca94f18-581a-4c90-9ba0-a2ff0221bf08'
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 echo "Building Docker image..."
-                sh 'docker build -t $IMAGE_NAME --file Dockerfile .'
+                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG --file Dockerfile .'
             }
         }
 
         stage('Push Docker Image to Docker Hub') {
             steps {
+                echo "Pushing Docker image to Docker Hub..."
                 withCredentials([
                     usernamePassword(
-                        credentialsId: 'dockerhub-username', 
-                        usernameVariable: 'DOCKER_USER', 
+                        credentialsId: 'dockerhub-username',
+                        usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASS'
                     )
                 ]) {
                     sh '''
-                        docker tag $IMAGE_NAME $DOCKER_USER/$IMAGE_NAME
+                        docker tag $IMAGE_NAME:$IMAGE_TAG $DOCKER_USER/$IMAGE_NAME:$IMAGE_TAG
                         echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                        docker push $DOCKER_USER/$IMAGE_NAME
+                        docker push $DOCKER_USER/$IMAGE_NAME:$IMAGE_TAG
+                        docker logout
                     '''
                 }
             }
@@ -46,13 +51,14 @@ pipeline {
                 sh '''
                     cd backend
                     npm install
-                    nohup node server.js &
-                    for i in {1..10}; do
-                        curl -f http://localhost:5000 && break
-                        echo "Waiting for backend..."
-                        sleep 1
+                    nohup node server.js > backend.log 2>&1 &
+                    SERVER_PID=$!
+                    for i in {1..15}; do
+                        curl -f http://localhost:3000 && break
+                        echo "Waiting for backend to start..."
+                        sleep 2
                     done
-                    pkill node
+                    kill $SERVER_PID || true
                 '''
             }
         }
@@ -65,6 +71,7 @@ pipeline {
 
         stage('Deploy to AWS with Ansible') {
             steps {
+                echo "Deploying to AWS using Ansible..."
                 withCredentials([sshUserPrivateKey(credentialsId: 'aws-ssh-key', keyFileVariable: 'SSH_KEY')]) {
                     sh '''
                         mkdir -p $WORKSPACE/.ssh
@@ -80,10 +87,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Build & Tests Passed!'
+            echo '✅ Build, Tests & Deployment Succeeded!'
         }
         failure {
-            echo '❌ Build or Tests Failed!'
+            echo '❌ Build, Tests, or Deployment Failed!'
         }
         always {
             echo 'Cleaning up temporary SSH keys...'
