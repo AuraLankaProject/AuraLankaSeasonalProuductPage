@@ -4,6 +4,8 @@ pipeline {
     environment {
         IMAGE_NAME = "auralanka-seasonal-products:latest"
         NODE_ENV = "production"
+        DOCKERHUB_USER = credentials('dockerhub-username') // Docker Hub username
+        DOCKERHUB_PASS = credentials('dockerhub-password') // Docker Hub token
     }
 
     stages {
@@ -24,35 +26,29 @@ pipeline {
         stage('Push Docker Image to Docker Hub') {
             steps {
                 echo "Logging in to Docker Hub..."
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub-username', 
-                        usernameVariable: 'DOCKERHUB_USER', 
-                        passwordVariable: 'DOCKERHUB_PASS'
-                    )
-                ]) {
-                    sh """
-                        docker tag $IMAGE_NAME \$DOCKERHUB_USER/auralanka-seasonal-products:latest
-                        echo \$DOCKERHUB_PASS | docker login -u \$DOCKERHUB_USER --password-stdin
-                        docker push \$DOCKERHUB_USER/auralanka-seasonal-products:latest
-                    """
-                }
+                sh """
+                    docker tag $IMAGE_NAME $DOCKERHUB_USER/$IMAGE_NAME
+                    echo \$DOCKERHUB_PASS | docker login -u \$DOCKERHUB_USER --password-stdin
+                    docker push $DOCKERHUB_USER/$IMAGE_NAME
+                """
             }
         }
 
         stage('Run Backend Tests') {
             steps {
                 echo "Running backend tests..."
+                // Run backend tests in a blocking way (no nohup & background)
                 sh '''
                     cd backend
                     npm install
-                    nohup node server.js &
+                    node server.js &
+                    SERVER_PID=$!
                     for i in {1..10}; do
                         curl -f http://localhost:5000 && break
                         echo "Waiting for backend..."
                         sleep 1
                     done
-                    pkill node
+                    kill $SERVER_PID
                 '''
             }
         }
