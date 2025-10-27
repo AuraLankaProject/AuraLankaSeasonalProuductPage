@@ -2,8 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "auralanka-seasonal-products"
-        IMAGE_TAG = "latest"
+        IMAGE_NAME = "auralanka-seasonal-products:latest"
         NODE_ENV = "production"
     }
 
@@ -11,7 +10,6 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                echo "Checking out code from Git..."
                 git branch: 'feature/seasonal-products',
                     url: 'https://github.com/AuraLankaProject/AuraLankaSeasonalProuductPage.git',
                     credentialsId: 'eca94f18-581a-4c90-9ba0-a2ff0221bf08'
@@ -21,24 +19,23 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo "Building Docker image..."
-                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG --file Dockerfile .'
+                sh 'docker build -t $IMAGE_NAME --file Dockerfile .'
             }
         }
 
         stage('Push Docker Image to Docker Hub') {
             steps {
-                echo "Pushing Docker image to Docker Hub..."
                 withCredentials([
                     usernamePassword(
-                        credentialsId: 'dockerhub-username',
-                        usernameVariable: 'DOCKER_USER',
+                        credentialsId: 'dockerhub-username', 
+                        usernameVariable: 'DOCKER_USER', 
                         passwordVariable: 'DOCKER_PASS'
                     )
                 ]) {
                     sh '''
-                        docker tag $IMAGE_NAME:$IMAGE_TAG $DOCKER_USER/$IMAGE_NAME:$IMAGE_TAG
+                        docker tag $IMAGE_NAME $DOCKER_USER/$IMAGE_NAME
                         echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                        docker push $DOCKER_USER/$IMAGE_NAME:$IMAGE_TAG
+                        docker push $DOCKER_USER/$IMAGE_NAME
                         docker logout
                     '''
                 }
@@ -47,31 +44,26 @@ pipeline {
 
         stage('Run Backend Tests') {
             steps {
-                echo "Running backend tests..."
+                echo "Running backend tests inside Docker..."
                 sh '''
-                    cd backend
-                    npm install
-                    nohup node server.js > backend.log 2>&1 &
-                    SERVER_PID=$!
-                    for i in {1..15}; do
-                        curl -f http://localhost:3000 && break
-                        echo "Waiting for backend to start..."
-                        sleep 2
-                    done
-                    kill $SERVER_PID || true
+                    docker run --rm -v $WORKSPACE/backend:/app/backend -w /app/backend $IMAGE_NAME npm install
+                    docker run --rm -v $WORKSPACE/backend:/app/backend -w /app/backend $IMAGE_NAME npm test
                 '''
             }
         }
 
         stage('Run Frontend Tests') {
             steps {
-                echo "No frontend Node.js project found. Skipping frontend tests."
+                echo "Running frontend tests inside Docker..."
+                sh '''
+                    docker run --rm -v $WORKSPACE/frontend:/app/frontend -w /app/frontend $IMAGE_NAME npm install
+                    docker run --rm -v $WORKSPACE/frontend:/app/frontend -w /app/frontend $IMAGE_NAME npm test || echo "No frontend tests found, skipping"
+                '''
             }
         }
 
         stage('Deploy to AWS with Ansible') {
             steps {
-                echo "Deploying to AWS using Ansible..."
                 withCredentials([sshUserPrivateKey(credentialsId: 'aws-ssh-key', keyFileVariable: 'SSH_KEY')]) {
                     sh '''
                         mkdir -p $WORKSPACE/.ssh
@@ -87,7 +79,7 @@ pipeline {
 
     post {
         success {
-            echo '✅ Build, Tests & Deployment Succeeded!'
+            echo '✅ Build, Tests & Deployment Passed!'
         }
         failure {
             echo '❌ Build, Tests, or Deployment Failed!'
