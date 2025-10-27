@@ -61,15 +61,23 @@ pipeline {
 
 
 
-        stage('Run Frontend Tests') {
-            steps {
-                echo "Running frontend tests inside Docker..."
-                sh '''
-                    docker run --rm -v $WORKSPACE/frontend:/app/frontend -w /app/frontend $IMAGE_NAME npm install
-                    docker run --rm -v $WORKSPACE/frontend:/app/frontend -w /app/frontend $IMAGE_NAME npm test || echo "No frontend tests found, skipping"
-                '''
-            }
-        }
+	stage('Run Frontend Tests') {
+    echo 'Running frontend tests inside Docker...'
+    sh '''
+    if [ -f frontend/package.json ]; then
+        docker run --rm \
+            -v $WORKSPACE/frontend:/app/frontend \
+            -w /app/frontend \
+            auralanka-seasonal-products:latest \
+            bash -c "npm install && \
+            if npm run | grep -q 'test'; then npm test; else echo 'No frontend test script found. Skipping tests.'; fi"
+    else
+        echo "No frontend/package.json found. Skipping frontend tests."
+    fi
+    '''
+}
+
+
 
         stage('Deploy to AWS with Ansible') {
             steps {
