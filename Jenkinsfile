@@ -42,20 +42,19 @@ pipeline {
             }
         }
 
+
 	stage('Run Backend Tests') {
     steps {
         echo "Running backend tests inside Docker..."
         sh '''
-            cd backend
-            npm install
-
-            # Check if a test script exists in package.json
-            if npm run | grep -q "test"; then
-                echo "Test script found, running tests..."
-                docker run --rm -v $PWD:/app/backend -w /app/backend auralanka-seasonal-products:latest npm test
-            else
-                echo "No test script found in package.json. Skipping backend tests."
-            fi
+            docker run --rm -v $PWD/backend:/app/backend -w /app/backend auralanka-seasonal-products:latest bash -c "
+                npm install && \
+                if npm run | grep -q 'test'; then
+                    npm test
+                else
+                    echo 'No test script found. Skipping backend tests.'
+                fi
+            "
         '''
     }
 }
