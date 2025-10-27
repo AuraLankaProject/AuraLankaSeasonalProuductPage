@@ -55,7 +55,7 @@ pipeline {
         stage('Deploy to AWS with Ansible') {
             steps {
                 echo "Deploying to AWS using Ansible..."
-                sshagent(['auralanka-ec2-key']) {
+                sshagent(['auralanka-vm-key']) {  // <-- Updated ID here
                     sh '''
                         cd ansible
                         ansible-playbook -i hosts.ini deploy.yml
