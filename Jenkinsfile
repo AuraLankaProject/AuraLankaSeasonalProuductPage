@@ -19,30 +19,35 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo "Building Docker image..."
-                script {
-                    docker.build("${IMAGE_NAME}", "--file Dockerfile .")
-                }
+                sh 'docker build -t $IMAGE_NAME --file Dockerfile .'
+            }
+        }
+
+        stage('Push Docker Image to Docker Hub') {
+            steps {
+                echo "Logging in to Docker Hub..."
+                sh '''
+                    echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin
+                    docker tag $IMAGE_NAME $DOCKERHUB_USER/$IMAGE_NAME
+                    docker push $DOCKERHUB_USER/$IMAGE_NAME
+                '''
             }
         }
 
         stage('Run Backend Tests') {
             steps {
-                echo "Running backend tests inside Docker container..."
-                script {
-                    docker.image("${IMAGE_NAME}").inside('-u root -p 5000:5000') {
-                        sh '''
-                            cd backend
-                            npm install
-                            nohup node server.js &
-                            for i in {1..10}; do
-                                curl -f http://localhost:5000 && break
-                                echo "Waiting for backend..."
-                                sleep 1
-                            done
-                            pkill node
-                        '''
-                    }
-                }
+                echo "Running backend tests..."
+                sh '''
+                    cd backend
+                    npm install
+                    nohup node server.js &
+                    for i in {1..10}; do
+                        curl -f http://localhost:5000 && break
+                        echo "Waiting for backend..."
+                        sleep 1
+                    done
+                    pkill node
+                '''
             }
         }
 
@@ -54,33 +59,30 @@ pipeline {
 
         stage('Deploy to AWS with Ansible') {
             steps {
-                withCredentials([sshUserPrivateKey(credentialsId: 'jenkins-auralanka-key', keyFileVariable: 'SSH_KEY')]) {
-                    script {
-                        sh '''
-                            mkdir -p $WORKSPACE/.ssh
-                            cp $SSH_KEY $WORKSPACE/.ssh/aws-key.pem
-                            chmod 600 $WORKSPACE/.ssh/aws-key.pem
-                            cd ansible
-                            ansible-playbook -i hosts.ini deploy.yml --private-key=$WORKSPACE/.ssh/aws-key.pem
-                        '''
-                    }
+                // Use your actual SSH credential ID
+                withCredentials([sshUserPrivateKey(credentialsId: 'aws-ssh-key', keyFileVariable: 'SSH_KEY')]) {
+                    sh '''
+                        mkdir -p $WORKSPACE/.ssh
+                        cp $SSH_KEY $WORKSPACE/.ssh/aws-key.pem
+                        chmod 600 $WORKSPACE/.ssh/aws-key.pem
+                        cd ansible
+                        ansible-playbook -i hosts.ini deploy.yml --private-key=$WORKSPACE/.ssh/aws-key.pem
+                    '''
                 }
-                echo "✅ Deployment completed successfully!"
             }
         }
     }
 
     post {
         success {
-            echo '✅ Build & Tests Passed!'
+            echo '✅ Build, Tests & Deployment Passed!'
         }
         failure {
             echo '❌ Build or Tests Failed!'
         }
         always {
-            steps {
-                sh 'rm -rf $WORKSPACE/.ssh || true'
-            }
+            echo 'Cleaning up temporary SSH keys...'
+            sh 'rm -rf $WORKSPACE/.ssh || true'
         }
     }
 }
