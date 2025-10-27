@@ -6,7 +6,6 @@ pipeline {
         NODE_ENV = "production"
         DOCKERHUB_USER = credentials('dockerhub-username')
         DOCKERHUB_PASS = credentials('dockerhub-password')
-        SSH_KEY = credentials('jenkins-auralanka-key')
     }
 
     stages {
@@ -55,15 +54,16 @@ pipeline {
 
         stage('Deploy to AWS with Ansible') {
             steps {
-                echo "Deploying to AWS using Ansible..."
-                script {
-                    sh '''
-                        mkdir -p $WORKSPACE/.ssh
-                        printf "%s\n" "$SSH_KEY" > $WORKSPACE/.ssh/aws-key.pem
-                        chmod 600 $WORKSPACE/.ssh/aws-key.pem
-                        cd ansible
-                        ansible-playbook -i hosts.ini deploy.yml --private-key=$WORKSPACE/.ssh/aws-key.pem
-                    '''
+                withCredentials([sshUserPrivateKey(credentialsId: 'jenkins-auralanka-key', keyFileVariable: 'SSH_KEY')]) {
+                    script {
+                        sh '''
+                            mkdir -p $WORKSPACE/.ssh
+                            cp $SSH_KEY $WORKSPACE/.ssh/aws-key.pem
+                            chmod 600 $WORKSPACE/.ssh/aws-key.pem
+                            cd ansible
+                            ansible-playbook -i hosts.ini deploy.yml --private-key=$WORKSPACE/.ssh/aws-key.pem
+                        '''
+                    }
                 }
                 echo "✅ Deployment completed successfully!"
             }
@@ -75,11 +75,10 @@ pipeline {
             echo '✅ Build & Tests Passed!'
         }
         failure {
-            echo '❌ Build, Tests or Deployment Failed!'
+            echo '❌ Build or Tests Failed!'
         }
         always {
-            script {
-                // Clean up SSH key safely
+            steps {
                 sh 'rm -rf $WORKSPACE/.ssh || true'
             }
         }
