@@ -36,7 +36,7 @@
 
     - name: Pull Docker image from Docker Hub
       docker_image:
-        name: hirunisliit/auralanka-ecommerce
+        name: hirunisliit/auralanka-seasonal-products
         source: pull
         force_source: yes
 
@@ -48,7 +48,7 @@
     - name: Run Docker container
       docker_container:
         name: auralanka-app
-        image: hirunisliit/auralanka-ecommerce:latest
+        image: hirunisliit/auralanka-seasonal-products:latest
         state: started
         restart_policy: always
         ports:
